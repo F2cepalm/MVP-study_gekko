@@ -1,5 +1,6 @@
 ﻿using MVP_for_StudyGekko.Configuration;
 using MVP_for_StudyGekko.Handlers;
+using MVP_for_StudyGekko.Services;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -21,6 +22,17 @@ builder.Services.AddScoped<UpdateHandler>();
 
 // OpenAPI
 builder.Services.AddOpenApi();
+
+// LLM Services
+builder.Services.AddHttpClient<ClaudeService>();
+builder.Services.AddHttpClient<GeminiService>();
+builder.Services.AddSingleton<ILlmServiceFactory, LlmServiceFactory>();
+
+// Orchestrator
+builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
+
+// Word Builder
+builder.Services.AddScoped<IDocumentBuilder, WordDocumentBuilder>();
 
 var app = builder.Build();
 
