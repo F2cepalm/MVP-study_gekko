@@ -28,6 +28,12 @@ builder.Services.AddHttpClient<ClaudeService>();
 builder.Services.AddHttpClient<GeminiService>();
 builder.Services.AddSingleton<ILlmServiceFactory, LlmServiceFactory>();
 
+// Session Service для хранения требований пользователей
+builder.Services.AddSingleton<ISessionService, SessionService>();
+
+// Requirements Analyzer Service для анализа файлов с требованиями
+builder.Services.AddHttpClient<IRequirementsAnalyzerService, RequirementsAnalyzerService>();
+
 // Orchestrator
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 

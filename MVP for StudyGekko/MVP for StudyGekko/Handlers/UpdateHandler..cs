@@ -12,17 +12,23 @@ public class UpdateHandler
     private readonly ITelegramBotClient _bot;
     private readonly IOrchestrationService _orchestrator;
     private readonly IDocumentBuilder _documentBuilder;
+    private readonly IRequirementsAnalyzerService _requirementsAnalyzer;
+    private readonly ISessionService _sessionService;
     private readonly ILogger<UpdateHandler> _logger;
 
     public UpdateHandler(
         ITelegramBotClient bot,
         IOrchestrationService orchestrator,
         IDocumentBuilder documentBuilder,
+        IRequirementsAnalyzerService requirementsAnalyzer,
+        ISessionService sessionService,
         ILogger<UpdateHandler> logger)
     {
         _bot = bot;
         _orchestrator = orchestrator;
         _documentBuilder = documentBuilder;
+        _requirementsAnalyzer = requirementsAnalyzer;
+        _sessionService = sessionService;
         _logger = logger;
     }
 
@@ -46,10 +52,28 @@ public class UpdateHandler
             await _bot.SendMessage(
                 chatId,
                 "Привет! Я помогу написать студенческую работу.\n\n" +
-                "Используй команду:\n" +
-                "/create [тема] — создать работу\n\n" +
+                "Доступные команды:\n" +
+                "/create [тема] — создать работу\n" +
+                "/requirements — загрузить файл с требованиями к оформлению\n\n" +
                 "Пример: /create Влияние социальных сетей на молодёжь",
                 cancellationToken: ct);
+            return;
+        }
+
+        if (text.StartsWith("/requirements"))
+        {
+            await _bot.SendMessage(
+                chatId,
+                "Отправь мне файл с требованиями к оформлению (DOCX, DOC, PDF или TXT).\n\n" +
+                "Я проанализирую его и буду использовать эти требования при создании документов.",
+                cancellationToken: ct);
+            return;
+        }
+
+        // Обработка документов (файлов с требованиями)
+        if (message.Document != null)
+        {
+            await HandleDocumentAsync(message, ct);
             return;
         }
 
@@ -81,7 +105,9 @@ public class UpdateHandler
 
             if (result.Success)
             {
-                var docBytes = await _documentBuilder.BuildAsync(result, request);
+                // Получаем требования пользователя из сессии
+                var requirements = _sessionService.GetRequirements(chatId);
+                var docBytes = await _documentBuilder.BuildAsync(result, request, requirements);
                 var fileName = $"{SanitizeFileName(topic)}.docx";
 
                 using var stream = new MemoryStream(docBytes);
@@ -151,6 +177,56 @@ public class UpdateHandler
         }
 
         return chunks;
+    }
+
+    private async Task HandleDocumentAsync(Message message, CancellationToken ct)
+    {
+        var chatId = message.Chat.Id;
+        var document = message.Document!;
+
+        try
+        {
+            _logger.LogInformation("Processing document: {FileName} from {ChatId}", document.FileName, chatId);
+
+            await _bot.SendMessage(chatId, "Анализирую файл с требованиями...", cancellationToken: ct);
+            await _bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
+
+            // Скачиваем файл
+            var file = await _bot.GetFile(document.FileId, ct);
+            if (file.FilePath == null)
+            {
+                await _bot.SendMessage(chatId, "Не удалось получить файл. Попробуй еще раз.", cancellationToken: ct);
+                return;
+            }
+
+            using var stream = new MemoryStream();
+            await _bot.DownloadFile(file.FilePath, stream, ct);
+            var fileContent = stream.ToArray();
+
+            // Анализируем файл через Gemini
+            var requirements = await _requirementsAnalyzer.AnalyzeFileAsync(fileContent, document.FileName ?? "document", ct);
+
+            // Сохраняем требования в сессии пользователя
+            _sessionService.SetRequirements(chatId, requirements);
+
+            _logger.LogInformation("Requirements saved for {ChatId}", chatId);
+
+            await _bot.SendMessage(
+                chatId,
+                "✅ Требования к оформлению сохранены!\n\n" +
+                "Теперь все документы будут создаваться с этими настройками.\n\n" +
+                "Используй /create [тема] для создания работы.",
+                cancellationToken: ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to process document from {ChatId}", chatId);
+            await _bot.SendMessage(
+                chatId,
+                "Не удалось обработать файл. Проверь формат файла и попробуй снова.\n\n" +
+                "Поддерживаемые форматы: DOCX, DOC, PDF, TXT",
+                cancellationToken: ct);
+        }
     }
 
     private static string SanitizeFileName(string name)
