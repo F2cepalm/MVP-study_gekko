@@ -156,13 +156,18 @@ public class WordDocumentBuilder : IDocumentBuilder
                     IsHeading = true
                 });
             }
-            else if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("-") && !trimmed.StartsWith("*"))
+            else if (!string.IsNullOrWhiteSpace(trimmed))
             {
-                sections.Add(new ContentSection
+                // Убираем маркеры списка, но сохраняем текст
+                var cleanText = trimmed.TrimStart('-', '*', ' ', '\t');
+                if (!string.IsNullOrWhiteSpace(cleanText))
                 {
-                    Text = trimmed,
-                    IsHeading = false
-                });
+                    sections.Add(new ContentSection
+                    {
+                        Text = cleanText,
+                        IsHeading = false
+                    });
+                }
             }
         }
 

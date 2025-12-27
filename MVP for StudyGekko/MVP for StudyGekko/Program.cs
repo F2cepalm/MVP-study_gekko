@@ -1,6 +1,7 @@
 ﻿using MVP_for_StudyGekko.Configuration;
 using MVP_for_StudyGekko.Handlers;
 using MVP_for_StudyGekko.Services;
+using Polly;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -14,9 +15,12 @@ builder.Services.Configure<LlmConfiguration>(
 
 // Telegram Bot
 var botConfig = builder.Configuration.GetSection("BotConfiguration").Get<BotConfiguration>();
+var botToken = builder.Configuration["BotConfiguration:Token"]
+    ?? Environment.GetEnvironmentVariable("BOT_TOKEN")
+    ?? throw new InvalidOperationException("Bot token not configured");
 builder.Services.AddHttpClient("telegram")
     .AddTypedClient<ITelegramBotClient>(client =>
-        new TelegramBotClient(botConfig!.Token, client));
+        new TelegramBotClient(botToken, client));
 //хэндлер
 builder.Services.AddScoped<UpdateHandler>();
 
@@ -33,6 +37,14 @@ builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 
 // Word Builder
 builder.Services.AddScoped<IDocumentBuilder, WordDocumentBuilder>();
+
+//Polly
+builder.Services.AddHttpClient<ClaudeService>()
+    .AddTransientHttpErrorPolicy(p =>
+        p.WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))));
+
+//Status
+builder.Services.AddSingleton<UserStateService>();
 
 var app = builder.Build();
 

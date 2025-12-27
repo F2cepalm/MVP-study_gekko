@@ -12,17 +12,20 @@ public class UpdateHandler
     private readonly ITelegramBotClient _bot;
     private readonly IOrchestrationService _orchestrator;
     private readonly IDocumentBuilder _documentBuilder;
+    private readonly UserStateService _userState;
     private readonly ILogger<UpdateHandler> _logger;
 
     public UpdateHandler(
         ITelegramBotClient bot,
         IOrchestrationService orchestrator,
         IDocumentBuilder documentBuilder,
+        UserStateService userState,
         ILogger<UpdateHandler> logger)
     {
         _bot = bot;
         _orchestrator = orchestrator;
         _documentBuilder = documentBuilder;
+        _userState = userState;
         _logger = logger;
     }
 
@@ -55,7 +58,27 @@ public class UpdateHandler
 
         if (text.StartsWith("/create"))
         {
+            if (_userState.IsGenerating(chatId))
+            {
+                await _bot.SendMessage(chatId, "Предыдущая работа ещё генерируется. Подожди.", cancellationToken: ct);
+                return;
+            }
+
             var topic = text.Replace("/create", "").Trim();
+
+            if (topic.Length > 500)
+            {
+                await _bot.SendMessage(chatId, "Тема слишком длинная. Максимум 500 символов.", cancellationToken: ct);
+                return;
+            }
+
+            if (topic.Length < 10)
+            {
+                await _bot.SendMessage(chatId, "Тема слишком короткая. Опиши подробнее.", cancellationToken: ct);
+                return;
+            }
+
+            _userState.SetGenerating(chatId, true);
 
             if (string.IsNullOrEmpty(topic))
             {
@@ -67,34 +90,44 @@ public class UpdateHandler
             }
 
             await _bot.SendMessage(chatId, "Начинаю работу. Это займёт пару минут...", cancellationToken: ct);
-            await _bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
 
-            var request = new WorkRequest
+            try
             {
-                ChatId = chatId,
-                Topic = topic,
-                Type = WorkType.Essay,
-                TargetPages = 5
-            };
 
-            var result = await _orchestrator.GenerateWorkAsync(request, ct);
+                await _bot.SendChatAction(chatId, ChatAction.Typing, cancellationToken: ct);
 
-            if (result.Success)
-            {
-                var docBytes = await _documentBuilder.BuildAsync(result, request);
-                var fileName = $"{SanitizeFileName(topic)}.docx";
+                var request = new WorkRequest
+                {
+                    ChatId = chatId,
+                    Topic = topic,
+                    Type = WorkType.Essay,
+                    TargetPages = 5
+                };
 
-                using var stream = new MemoryStream(docBytes);
-                await _bot.SendDocument(
-                    chatId,
-                    new Telegram.Bot.Types.InputFileStream(stream, fileName),
-                    caption: "Готово! Вот твоя работа.",
-                    cancellationToken: ct);
+                var result = await _orchestrator.GenerateWorkAsync(request, ct);
+
+                if (result.Success)
+                {
+                    var docBytes = await _documentBuilder.BuildAsync(result, request);
+                    var fileName = $"{SanitizeFileName(topic)}.docx";
+
+                    using var stream = new MemoryStream(docBytes);
+                    await _bot.SendDocument(
+                        chatId,
+                        new Telegram.Bot.Types.InputFileStream(stream, fileName),
+                        caption: "Готово! Вот твоя работа.",
+                        cancellationToken: ct);
+                }
+                else
+                {
+                    await _bot.SendMessage(chatId, result.ErrorMessage!, cancellationToken: ct);
+                }
             }
-            else
+            finally
             {
-                await _bot.SendMessage(chatId, result.ErrorMessage!, cancellationToken: ct);
+                _userState.SetGenerating(chatId, false);  // снимаем флаг в любом случае
             }
+
             return;
         }
 

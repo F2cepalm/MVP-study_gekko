@@ -31,18 +31,20 @@ public class OrchestrationService : IOrchestrationService
             var outlinePrompt = PromptTemplates.GenerateOutline(request.Topic, workTypeName, request.TargetPages);
             var outline = await llm.GenerateAsync(outlinePrompt, ct);
 
+
             _logger.LogInformation("Outline generated");
 
-            // Шаг 2: Генерация введения
-            var introPrompt = PromptTemplates.GenerateIntroduction(request.Topic, outline);
-            var introduction = await llm.GenerateAsync(introPrompt, ct);
+            var introTask = llm.GenerateAsync(
+    PromptTemplates.GenerateIntroduction(request.Topic, outline), ct);
+            var conclusionTask = llm.GenerateAsync(
+                PromptTemplates.GenerateConclusion(request.Topic, outline), ct);
+
+            await Task.WhenAll(introTask, conclusionTask);
+
+            var introduction = await introTask;
+            var conclusion = await conclusionTask;
 
             _logger.LogInformation("Introduction generated");
-
-            // Шаг 3: Генерация заключения
-            var conclusionPrompt = PromptTemplates.GenerateConclusion(request.Topic, outline);
-            var conclusion = await llm.GenerateAsync(conclusionPrompt, ct);
-
             _logger.LogInformation("Conclusion generated");
 
             // Сборка документа

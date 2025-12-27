@@ -19,24 +19,25 @@ public class ClaudeService : ILlmService
 
     public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)
     {
-        var request = new
+        var requestBody = new
         {
             model = "claude-sonnet-4-20250514",
             max_tokens = 4096,
-            messages = new[]
-            {
-                new { role = "user", content = prompt }
-            }
+            messages = new[] { new { role = "user", content = prompt } }
         };
 
-        var json = JsonSerializer.Serialize(request);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                Encoding.UTF8,
+                "application/json")
+        };
 
-        _http.DefaultRequestHeaders.Clear();
-        _http.DefaultRequestHeaders.Add("x-api-key", _apiKey);
-        _http.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        request.Headers.Add("x-api-key", _apiKey);
+        request.Headers.Add("anthropic-version", "2023-06-01");
 
-        var response = await _http.PostAsync("https://api.anthropic.com/v1/messages", content, ct);
+        var response = await _http.SendAsync(request, ct);
         var responseJson = await response.Content.ReadAsStringAsync(ct);
 
         if (!response.IsSuccessStatusCode)
