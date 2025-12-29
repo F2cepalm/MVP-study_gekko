@@ -1,4 +1,5 @@
-﻿using MVP_for_StudyGekko.Configuration;
+﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using MVP_for_StudyGekko.Configuration;
 using MVP_for_StudyGekko.Handlers;
 using MVP_for_StudyGekko.Services;
 using Telegram.Bot;
@@ -17,22 +18,28 @@ var botConfig = builder.Configuration.GetSection("BotConfiguration").Get<BotConf
 builder.Services.AddHttpClient("telegram")
     .AddTypedClient<ITelegramBotClient>(client =>
         new TelegramBotClient(botConfig!.Token, client));
-//хэндлер
-builder.Services.AddScoped<UpdateHandler>();
 
 // OpenAPI
 builder.Services.AddOpenApi();
 
 // LLM Services
-builder.Services.AddHttpClient<ClaudeService>();
-builder.Services.AddHttpClient<GeminiService>();
+builder.Services.AddHttpClient<ILlmService, ClaudeService>();
+builder.Services.AddHttpClient<ILlmService, GeminiService>();
 builder.Services.AddSingleton<ILlmServiceFactory, LlmServiceFactory>();
+
+//хэндлер
+builder.Services.AddScoped<UpdateHandler>();
+
+builder.Services.AddScoped<GetRequirementsJson>();
 
 // Orchestrator
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 
 // Word Builder
 builder.Services.AddScoped<IDocumentBuilder, WordDocumentBuilder>();
+
+// Get Requirements JSON
+builder.Services.AddSingleton<GetRequirementsJson>();
 
 var app = builder.Build();
 
@@ -41,7 +48,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 //эндпоинт
 app.MapPost("/bot", async (ITelegramBotClient bot, UpdateHandler handler, Update update, CancellationToken ct) =>

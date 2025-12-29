@@ -1,9 +1,10 @@
-﻿using Telegram.Bot;
+﻿using MVP_for_StudyGekko.Models;
+using MVP_for_StudyGekko.Services;
+using System.IO;
+using System.Text;
+using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using MVP_for_StudyGekko.Services;
-using MVP_for_StudyGekko.Models;
-using System.IO;
 
 namespace MVP_for_StudyGekko.Handlers;
 
@@ -12,17 +13,20 @@ public class UpdateHandler
     private readonly ITelegramBotClient _bot;
     private readonly IOrchestrationService _orchestrator;
     private readonly IDocumentBuilder _documentBuilder;
+    private readonly GetRequirementsJson _getRequirementsJson;
     private readonly ILogger<UpdateHandler> _logger;
 
     public UpdateHandler(
         ITelegramBotClient bot,
         IOrchestrationService orchestrator,
         IDocumentBuilder documentBuilder,
+        GetRequirementsJson getRequirementsJson,
         ILogger<UpdateHandler> logger)
     {
         _bot = bot;
         _orchestrator = orchestrator;
         _documentBuilder = documentBuilder;
+        _getRequirementsJson = getRequirementsJson;
         _logger = logger;
     }
 
@@ -38,8 +42,70 @@ public class UpdateHandler
     {
         var text = message.Text ?? string.Empty;
         var chatId = message.Chat.Id;
+        var docum = message.Document!;
 
         _logger.LogInformation("Message from {ChatId}: {Text}", chatId, text);
+
+        string? fileId = message switch
+        {
+            { Photo: { } photos } => photos[^1].FileId,  // берём наибольшее разрешение
+            { Document: { } doc } => doc.FileId,
+            { Video: { } video } => video.FileId,
+            { Audio: { } audio } => audio.FileId,
+            { Voice: { } voice } => voice.FileId,
+            { VideoNote: { } vn } => vn.FileId,
+            _ => null
+        };
+
+
+        //file processing method
+        if (fileId != null)
+        {
+            var file = await _bot.GetFile(fileId, ct);
+            await _bot.SendMessage(chatId, "📄 Анализирую файл...", cancellationToken: ct);
+
+            var filePath = file.FilePath!;
+            await using var stream = new MemoryStream();
+            await _bot.DownloadFile(filePath, stream, ct);
+
+            var fileData = new FileData(
+                stream,
+                docum.FileName ?? "document",
+                docum.MimeType ?? "application/octet-stream"
+            );
+
+            var json = await _getRequirementsJson
+                .WithFile(fileData)
+                .GetResultAsync(ct);
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                await _bot.SendMessage(chatId, "Не удалось извлечь данные из файла.", cancellationToken: ct);
+                return;
+            }
+
+            // Если слишком длинный — отправляем как файл
+            if (json.Length > 4000)
+            {
+                var bytes = Encoding.UTF8.GetBytes(json);
+                using var streamO = new MemoryStream(bytes);
+                stream.Position = 0;
+
+                await _bot.SendDocument(
+                    chatId,
+                    InputFile.FromStream(stream, "requirements.json"),
+                    caption: "Результат анализа",
+                    cancellationToken: ct
+                );
+            }
+            else
+            {
+                await _bot.SendMessage(chatId, $"```json\n{json}\n```",
+                    parseMode: ParseMode.Markdown, cancellationToken: ct);
+            }
+
+            await stream.DisposeAsync();
+        }
 
         if (text.StartsWith("/start"))
         {
