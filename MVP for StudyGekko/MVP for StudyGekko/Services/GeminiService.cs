@@ -32,7 +32,8 @@ public class GeminiService : ILlmService
                         new { text = prompt }
                     }
                 }
-            }
+            },
+            model = "gemini-3-flash"
         };
 
         var json = JsonSerializer.Serialize(request);

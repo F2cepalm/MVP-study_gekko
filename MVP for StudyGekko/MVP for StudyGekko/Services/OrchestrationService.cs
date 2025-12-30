@@ -22,26 +22,27 @@ public class OrchestrationService : IOrchestrationService
     {
         try
         {
-            var llm = _llmFactory.Create(LlmProvider.Claude); // Внутренний выбор
+            var llm_claude = _llmFactory.Create(LlmProvider.Claude); // Выбор LLM для разных этапов
+            var llm_gemini = _llmFactory.Create(LlmProvider.Gemini); 
             var workTypeName = PromptTemplates.GetWorkTypeName(request.Type);
 
             _logger.LogInformation("Starting generation for topic: {Topic}", request.Topic);
 
             // Шаг 1: Генерация плана
             var outlinePrompt = PromptTemplates.GenerateOutline(request.Topic, workTypeName, request.TargetPages);
-            var outline = await llm.GenerateAsync(outlinePrompt, ct);
+            var outline = await llm_gemini.GenerateAsync(outlinePrompt, ct);
 
             _logger.LogInformation("Outline generated");
 
             // Шаг 2: Генерация введения
             var introPrompt = PromptTemplates.GenerateIntroduction(request.Topic, outline);
-            var introduction = await llm.GenerateAsync(introPrompt, ct);
+            var introduction = await llm_claude.GenerateAsync(introPrompt, ct);
 
             _logger.LogInformation("Introduction generated");
 
             // Шаг 3: Генерация заключения
             var conclusionPrompt = PromptTemplates.GenerateConclusion(request.Topic, outline);
-            var conclusion = await llm.GenerateAsync(conclusionPrompt, ct);
+            var conclusion = await llm_claude.GenerateAsync(conclusionPrompt, ct);
 
             _logger.LogInformation("Conclusion generated");
 

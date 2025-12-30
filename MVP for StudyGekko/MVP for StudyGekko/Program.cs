@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using MVP_for_StudyGekko.Configuration;
+﻿using MVP_for_StudyGekko.Configuration;
 using MVP_for_StudyGekko.Handlers;
 using MVP_for_StudyGekko.Services;
 using Telegram.Bot;
@@ -23,14 +22,16 @@ builder.Services.AddHttpClient("telegram")
 builder.Services.AddOpenApi();
 
 // LLM Services
-builder.Services.AddHttpClient<ILlmService, ClaudeService>();
-builder.Services.AddHttpClient<ILlmService, GeminiService>();
+builder.Services.AddHttpClient<ClaudeService>();
+builder.Services.AddHttpClient<GeminiService>();
 builder.Services.AddSingleton<ILlmServiceFactory, LlmServiceFactory>();
+builder.Services.AddHttpClient<ILlmService, GeminiService>();
+builder.Services.AddHttpClient<ILlmService, ClaudeService>();
 
 //хэндлер
 builder.Services.AddScoped<UpdateHandler>();
 
-builder.Services.AddScoped<GetRequirementsJson>();
+//builder.Services.AddScoped<GetRequirementsJson>();
 
 // Orchestrator
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
