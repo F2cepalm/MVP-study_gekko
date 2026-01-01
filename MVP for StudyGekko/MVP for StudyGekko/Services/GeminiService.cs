@@ -33,7 +33,7 @@ public class GeminiService : ILlmService
                     }
                 }
             },
-            model = "gemini-3-flash"
+            //model = "gemini-3-flash-preview"
         };
 
         var json = JsonSerializer.Serialize(request);

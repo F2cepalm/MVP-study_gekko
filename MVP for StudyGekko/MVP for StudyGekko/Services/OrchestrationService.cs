@@ -4,6 +4,8 @@ namespace MVP_for_StudyGekko.Services;
 
 public interface IOrchestrationService
 {
+    OrchestrationService WithFile(FileData file);
+    Task<string> GetResultAsync(CancellationToken ct = default);
     Task<WorkResult> GenerateWorkAsync(WorkRequest request, CancellationToken ct = default);
 }
 
@@ -12,10 +14,31 @@ public class OrchestrationService : IOrchestrationService
     private readonly ILlmServiceFactory _llmFactory;
     private readonly ILogger<OrchestrationService> _logger;
 
+    private const string Prompt = """
+        Проанализируй этот файл и извлеки все требования.
+        Верни результат строго в JSON формате:
+        {
+            "requirements": [
+                {
+                    "id": "REQ-001",
+                    "description": "описание требования"
+                }
+            ]
+        }
+        Только JSON, без пояснений.
+        """;
+    private FileData? _file;
+
+
+
     public OrchestrationService(ILlmServiceFactory llmFactory, ILogger<OrchestrationService> logger)
     {
         _llmFactory = llmFactory;
         _logger = logger;
+    }
+    public OrchestrationService(FileData? file)
+    {
+        _file = file;
     }
 
     public async Task<WorkResult> GenerateWorkAsync(WorkRequest request, CancellationToken ct = default)
@@ -78,5 +101,20 @@ public class OrchestrationService : IOrchestrationService
                 ErrorMessage = "Не удалось сгенерировать работу. Попробуйте позже."
             };
         }
+    }
+
+
+    public OrchestrationService WithFile(FileData file)
+    {
+        _file = file;
+        return this;
+    }
+    public async Task<string> GetResultAsync(CancellationToken ct = default)
+    {
+        if (_file is null)
+            throw new InvalidOperationException("File not provided. Call WithFile() first.");
+
+        var llm_gemini = _llmFactory.Create(LlmProvider.Gemini);
+        return await llm_gemini.GenerateFileAsync(Prompt, _file, ct);
     }
 }

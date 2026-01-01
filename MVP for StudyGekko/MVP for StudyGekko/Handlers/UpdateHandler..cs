@@ -13,20 +13,17 @@ public class UpdateHandler
     private readonly ITelegramBotClient _bot;
     private readonly IOrchestrationService _orchestrator;
     private readonly IDocumentBuilder _documentBuilder;
-    private readonly GetRequirementsJson _getRequirementsJson;
     private readonly ILogger<UpdateHandler> _logger;
 
     public UpdateHandler(
         ITelegramBotClient bot,
         IOrchestrationService orchestrator,
         IDocumentBuilder documentBuilder,
-        GetRequirementsJson getRequirementsJson,
         ILogger<UpdateHandler> logger)
     {
         _bot = bot;
         _orchestrator = orchestrator;
         _documentBuilder = documentBuilder;
-        _getRequirementsJson = getRequirementsJson;
         _logger = logger;
     }
 
@@ -74,7 +71,7 @@ public class UpdateHandler
                 docum.MimeType ?? "application/octet-stream"
             );
 
-            var json = await _getRequirementsJson
+            var json = await _orchestrator
                 .WithFile(fileData)
                 .GetResultAsync(ct);
 

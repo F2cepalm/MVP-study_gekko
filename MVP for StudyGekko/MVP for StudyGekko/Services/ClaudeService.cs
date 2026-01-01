@@ -17,6 +17,10 @@ public class ClaudeService : ILlmService
     {
         _http = http;
         _apiKey = config.Value.ClaudeApiKey;
+
+        _http.BaseAddress = new Uri("https://api.anthropic.com/");
+        _http.DefaultRequestHeaders.Add("x-api-key", _apiKey);
+        _http.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
     }
 
     public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)
@@ -33,10 +37,6 @@ public class ClaudeService : ILlmService
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        _http.DefaultRequestHeaders.Clear();
-        _http.DefaultRequestHeaders.Add("x-api-key", _apiKey);
-        _http.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
 
         var response = await _http.PostAsync("https://api.anthropic.com/v1/messages", content, ct);
         var responseJson = await response.Content.ReadAsStringAsync(ct);

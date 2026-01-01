@@ -34,13 +34,11 @@ builder.Services.AddScoped<UpdateHandler>();
 //builder.Services.AddScoped<GetRequirementsJson>();
 
 // Orchestrator
+// Get Requirements JSON
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 
 // Word Builder
 builder.Services.AddScoped<IDocumentBuilder, WordDocumentBuilder>();
-
-// Get Requirements JSON
-builder.Services.AddSingleton<GetRequirementsJson>();
 
 var app = builder.Build();
 
