@@ -1,0 +1,124 @@
+# =========================
+# .NET / C#
+# =========================
+
+## Build results
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vsidx
+*.lock.json
+
+## Visual Studio Code
+.vscode/
+*.code-workspace
+
+## JetBrains Rider
+.idea/
+*.sln.iml
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+
+## Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+
+# =========================
+# Secrets & Configuration
+# =========================
+
+## Main secrets file
+appsettings.Development.json
+appsettings.Local.json
+appsettings.Production.json
+secrets.json
+
+## User secrets (local)
+secrets/
+
+## Environment files
+.env
+.env.*
+!.env.example
+
+## Certificate files
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+
+# =========================
+# OS generated
+# =========================
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+## Linux
+*~
+
+# =========================
+# IDE / Tools
+# =========================
+
+## Resharper
+_ReSharper*/
+*.DotSettings.user
+
+## NCrunch
+*.ncrunch*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+## DocFX
+_site/
+docfx.log
+
+# =========================
+# Misc
+# =========================
+
+## Publish output
+publish/
+PublishProfiles/
+
+## ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+## Backup files
+*.bak
+*.tmp
+*.temp
+
+## Debug files
+*.dump
+*.stackdump

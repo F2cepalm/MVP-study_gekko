@@ -23,6 +23,8 @@ public static class PromptTemplates
         return $"""
             Напиши раздел "{sectionTitle}" для работы на тему: "{topic}".
             
+            Не подписывай раздел , просто начни с текста.
+
             Общий план работы:
             {outline}
             
@@ -40,6 +42,8 @@ public static class PromptTemplates
         return $"""
             Напиши введение для работы на тему: "{topic}".
             
+            Не подписывай раздел , просто начни с текста.
+
             План работы:
             {outline}
             

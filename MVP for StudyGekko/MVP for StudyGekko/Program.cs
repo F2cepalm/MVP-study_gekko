@@ -17,8 +17,6 @@ var botConfig = builder.Configuration.GetSection("BotConfiguration").Get<BotConf
 builder.Services.AddHttpClient("telegram")
     .AddTypedClient<ITelegramBotClient>(client =>
         new TelegramBotClient(botConfig!.Token, client));
-//хэндлер
-builder.Services.AddScoped<UpdateHandler>();
 
 // OpenAPI
 builder.Services.AddOpenApi();
@@ -27,8 +25,14 @@ builder.Services.AddOpenApi();
 builder.Services.AddHttpClient<ClaudeService>();
 builder.Services.AddHttpClient<GeminiService>();
 builder.Services.AddSingleton<ILlmServiceFactory, LlmServiceFactory>();
+builder.Services.AddHttpClient<ILlmService, GeminiService>();
+builder.Services.AddHttpClient<ILlmService, ClaudeService>();
+
+//хэндлер
+builder.Services.AddScoped<UpdateHandler>();
 
 // Orchestrator
+// Get Requirements JSON
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 
 // Word Builder
@@ -41,7 +45,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 //эндпоинт
 app.MapPost("/bot", async (ITelegramBotClient bot, UpdateHandler handler, Update update, CancellationToken ct) =>
