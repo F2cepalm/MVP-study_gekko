@@ -124,7 +124,7 @@ public class ClaudeService : ILlmService
         var request = new
         {
             model = "claude-sonnet-4-5-20250929",
-            max_tokens = 4096,
+            max_tokens = 1024,
             messages = new[]
             {
                 new { role = "user", content = contentParts }

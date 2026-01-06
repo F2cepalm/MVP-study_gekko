@@ -174,7 +174,7 @@ public class GeminiService : ILlmService
     {
         fileStream.Position = 0;
         var fileBytes = new byte[fileStream.Length];
-        await fileStream.ReadAsync(fileBytes, ct);
+        await fileStream.ReadExactlyAsync(fileBytes, ct);
 
         // Шаг 1: Инициализация upload — получаем URL
         var initUrl = $"https://generativelanguage.googleapis.com/upload/v1beta/files?key={_apiKey}";

@@ -168,54 +168,6 @@ public class UpdateHandler
             cancellationToken: ct);
     }
 
-    private async Task SendLongMessage(long chatId, string text, CancellationToken ct)
-    {
-        const int maxLength = 4000;
-
-        if (text.Length <= maxLength)
-        {
-            await _bot.SendMessage(chatId, text, cancellationToken: ct);
-            return;
-        }
-
-        var chunks = SplitText(text, maxLength);
-        foreach (var chunk in chunks)
-        {
-            await _bot.SendMessage(chatId, chunk, cancellationToken: ct);
-            await Task.Delay(500, ct); // Небольшая пауза между сообщениями
-        }
-    }
-
-    private static List<string> SplitText(string text, int maxLength)
-    {
-        var chunks = new List<string>();
-        var remaining = text;
-
-        while (remaining.Length > 0)
-        {
-            if (remaining.Length <= maxLength)
-            {
-                chunks.Add(remaining);
-                break;
-            }
-
-            var splitIndex = remaining.LastIndexOf('\n', maxLength);
-            if (splitIndex <= 0)
-            {
-                splitIndex = remaining.LastIndexOf(' ', maxLength);
-            }
-            if (splitIndex <= 0)
-            {
-                splitIndex = maxLength;
-            }
-
-            chunks.Add(remaining[..splitIndex]);
-            remaining = remaining[splitIndex..].TrimStart();
-        }
-
-        return chunks;
-    }
-
     private static string SanitizeFileName(string name)
     {
         var invalid = Path.GetInvalidFileNameChars();

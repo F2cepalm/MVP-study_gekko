@@ -31,8 +31,6 @@ builder.Services.AddHttpClient<ILlmService, ClaudeService>();
 //хэндлер
 builder.Services.AddScoped<UpdateHandler>();
 
-//builder.Services.AddScoped<GetRequirementsJson>();
-
 // Orchestrator
 // Get Requirements JSON
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
